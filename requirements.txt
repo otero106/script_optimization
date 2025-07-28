@@ -1,0 +1,11 @@
+matplotlib
+seaborn
+pymupdf
+pandas
+wordninja
+textblob
+transformers
+streamlit
+torch
+shap
+xgboost
