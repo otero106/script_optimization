@@ -444,7 +444,7 @@ if uploaded_file:
         fontsize=SMALL_FNT + 1
     )
 
-    st.pyplot(fig_radar, use_container_width=True)
+    st.pyplot(fig_radar, use_container_width=False)
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
