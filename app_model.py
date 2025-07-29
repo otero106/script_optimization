@@ -244,18 +244,17 @@ st.set_page_config(page_title="Script Analyzer", layout="wide")
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
-    
-    h1 {
+
+    [data-testid="stTitle"] {
         font-family: 'Comic Relief', sans-serif;
         font-weight: 700;
-        font-style: normal;
     }
     .main .block-container {
-        background-color: #310140;
+        background-color: #260530;
         color: white; /* You may want to adjust text color for readability */
     }
     .stApp {
-        background-color: #310140;
+        background-color: #260530;
     }
 
     </style>
