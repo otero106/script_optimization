@@ -366,87 +366,79 @@ if uploaded_file:
     st.dataframe(emo_div, use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════
-    #  CHARACTER EMOTION MAP
+    #  CHARACTER MAP  +  RADAR SIDE-BY-SIDE
     # ══════════════════════════════════════════════════════════════════
-    st.subheader("🧍‍♂️ Character-Centric Emotion Map")
-    df["Speaker_clean"] = (
-        df["Speaker"]
-        .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
-        .str.strip()
-    )
-    speaker_counts = (
-        df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"].value_counts()
-    )
-    valid_spk = speaker_counts[speaker_counts > 1].index
-    emo_matrix = (
-        df[
-            df["Speaker_clean"].isin(valid_spk)
-            & (df["Type"].str.lower() == "dialogue")
-        ]
-        .groupby(["Speaker_clean", "emotion_label"])
-        .size()
-        .unstack(fill_value=0)
-    )
-    emo_matrix["Total"] = emo_matrix.sum(axis=1)
-    emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
-    st.dataframe(emo_matrix, use_container_width=True)
+    left_col, right_col = st.columns([1.6, 1])   # 60 % | 40 % width
 
-    # ══════════════════════════════════════════════════════════════════
-    #  RADAR CHART
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("🕸️ Emotion Distribution per Character (Radar)")
+    # ── LEFT  ▸ character-centric table ───────────────────────────────
+    with left_col:
+        st.subheader("🧍‍♂️ Character-Centric Emotion Map")
 
-    radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
-    cats      = radar_df.columns.tolist()
+        df["Speaker_clean"] = (
+            df["Speaker"]
+              .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
+              .str.strip()
+        )
 
-    # ── polar frame ---------------------------------------------------
-    angles = np.linspace(0, 2*np.pi, len(cats), endpoint=False).tolist() + [0]
+        speaker_counts = (
+            df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"].value_counts()
+        )
+        valid_spk = speaker_counts[speaker_counts > 1].index
 
-    # ▶ 1) figure size  (width, height)  — shrink here
-    fig_radar, ax_radar = plt.subplots(
-        figsize=(4, 3.8),                 # ← change numbers to taste
-        subplot_kw=dict(polar=True)
-    )
+        emo_matrix = (
+            df[
+                df["Speaker_clean"].isin(valid_spk)
+                & (df["Type"].str.lower() == "dialogue")
+            ]
+            .groupby(["Speaker_clean", "emotion_label"])
+            .size()
+            .unstack(fill_value=0)
+        )
 
-    # basic polar orientation
-    ax_radar.set_theta_offset(np.pi/2)
-    ax_radar.set_theta_direction(-1)
+        emo_matrix["Total"] = emo_matrix.sum(axis=1)
+        emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
 
-    # axis / grid font size
-    SMALL_FNT = 7                        # ▶ 2) global font-size knob
+        st.dataframe(emo_matrix, use_container_width=True, height=280)
 
-    ax_radar.set_xticks(angles[:-1])
-    ax_radar.set_xticklabels(cats, fontsize=SMALL_FNT)
-    ax_radar.set_rlabel_position(0)
-    ax_radar.tick_params(labelsize=SMALL_FNT)
+    # ── RIGHT ▸ radar chart ────────────────────────────────────────────
+    with right_col:
+        st.subheader("🕸️ Emotion Distribution per Character (Radar)")
 
-    # radius limit
-    r_max = radar_df.to_numpy().max() + 1
-    ax_radar.set_ylim(0, r_max)
+        radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
+        cats      = radar_df.columns.tolist()
+        angles    = np.linspace(0, 2*np.pi, len(cats), endpoint=False).tolist() + [0]
 
-    # plot each character
-    for name, row in radar_df.iterrows():
-        vals = row.tolist() + [row.tolist()[0]]
-        ax_radar.plot(angles, vals, linewidth=1.5, label=name)
-        ax_radar.fill(angles, vals, alpha=0.08)
+        SMALL = 7           # one knob for all fonts
 
-    # compact legend inside the chart
-    ax_radar.legend(
-        loc="upper left",
-        bbox_to_anchor=(1.02, 1.02),      # nudges legend just outside
-        fontsize=SMALL_FNT,
-        frameon=False
-    )
+        fig_radar, ax_radar = plt.subplots(figsize=(3.2, 3.0),
+                                       subplot_kw=dict(polar=True))
 
-    ax_radar.set_title(
-        "Emotion Distribution per Character",
-        y=1.08,
-        fontsize=SMALL_FNT + 1
-    )
+        ax_radar.set_theta_offset(np.pi/2)
+        ax_radar.set_theta_direction(-1)
+        ax_radar.set_xticks(angles[:-1])
+        ax_radar.set_xticklabels(cats, fontsize=SMALL)
+        ax_radar.tick_params(labelsize=SMALL)
+        ax_radar.set_rlabel_position(0)
+        ax_radar.set_ylim(0, radar_df.to_numpy().max() + 1)
 
-    st.pyplot(fig_radar, use_container_width=False)
+        for name, row in radar_df.iterrows():
+            vals = row.tolist() + [row.tolist()[0]]
+            ax_radar.plot(angles, vals, linewidth=1.5, label=name)
+            ax_radar.fill(angles, vals, alpha=0.08)
+
+        ax_radar.legend(
+            loc="upper left",
+            bbox_to_anchor=(1.05, 1.0),
+            fontsize=SMALL,
+            frameon=False
+        )
+        ax_radar.set_title("Emotion Distribution per Character",
+                           y=1.08, fontsize=SMALL + 1)
+
+        st.pyplot(fig_radar, use_container_width=False)
+
     st.markdown("---")
-
+  
     # ══════════════════════════════════════════════════════════════════
     #  TOP EMOTIONAL SCENES
     # ══════════════════════════════════════════════════════════════════
