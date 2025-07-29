@@ -239,18 +239,18 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
 # ──────────────────────────────────────────────────────────────────────────────
 # 4.  STREAMLIT UI
 # ──────────────────────────────────────────────────────────────────────────────
+st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=300)
+st.set_page_config(page_title="Script Analyzer", layout="wide")
+
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Barriecito&display=swap');
-            
-    html, body [class*="st-"], [class*="css-"] {
-        font-family: 'Barriecito', cursive;
+    @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
+    h1{
+        font-family: 'Comic Relief', sans-serif;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=200)
-st.set_page_config(page_title="Script Analyzer", layout="wide")
 st.title("🎬 Toonstar Script Analyzer")
 st.markdown("Upload your annotated script **CSV** or raw **PDF** script file.")
 
