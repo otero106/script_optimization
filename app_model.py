@@ -245,13 +245,15 @@ st.set_page_config(page_title="Script Analyzer", layout="wide")
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
-    h1{
+    h1 {
         font-family: 'Comic Relief', sans-serif;
+        font-weight: 700;
+        font-style: normal;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎬 Toonstar Script Analyzer")
+st.title("🎬 Script Analyzer")
 st.markdown("Upload your annotated script **CSV** or raw **PDF** script file.")
 
 uploaded_file = st.file_uploader("📁 Upload a script file", type=["csv", "pdf"])
