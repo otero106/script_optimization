@@ -258,6 +258,31 @@ st.set_page_config(page_title="Script Analyzer", layout="wide")
 
 add_bg_from_url() # Add background image
 
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
+    
+    /* Target the title element specifically */
+    h1 {
+        font-family: 'Comic Relief', sans-serif;
+        font-weight: 700;
+        font-style: normal;
+    }
+
+    /* Set the background color of the main app area */
+    .main .block-container {
+        background-color: #310140;
+        color: white; /* You may want to adjust text color for readability */
+    }
+
+    /* You can also target other elements if needed */
+    .stApp {
+        background-color: #310140;
+    }
+
+    </style>
+""", unsafe_allow_html=True)
+
 st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=300)
 
 st.title("🎬 Script Analyzer")
