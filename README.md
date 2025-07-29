@@ -1,4 +1,4 @@
-# 🎬 Script Analyzer Prototype
+# 🎬 Script Analyzer
 
 Welcome to the **Script Analyzer**, a Streamlit-based web app for analyzing film or TV scripts using natural language processing. This tool extracts key emotional and structural insights from PDF or CSV scripts, helping storytellers and researchers better understand dialogue dynamics, character emotions, and scene structure.
 
