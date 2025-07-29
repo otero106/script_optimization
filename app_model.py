@@ -521,7 +521,7 @@ if uploaded_file:
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
     ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
-    st.pyplot(fig_imp, use_container_width=True)
+    st.pyplot(fig_imp, use_container_width=False)
 
     # ══════════════════════════════════════════════════════════════════
     #  SHAP PLOTS SIDE-BY-SIDE
