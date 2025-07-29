@@ -328,7 +328,7 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(5, 2))     # ⬅️ smaller
+    fig_arc, ax_arc = plt.subplots(figsize=(6, 3))     # ⬅️ smaller
     sns.lineplot(
         data=emo_avg, x="scene_id", y="emotion_intensity",
         marker="o", ax=ax_arc
@@ -336,7 +336,7 @@ if uploaded_file:
     ax_arc.set_title("Emotion Arc Across Scenes")
     ax_arc.set_xlabel("Scene ID")
     ax_arc.set_ylabel("Avg Emotion Intensity")
-    st.pyplot(fig_arc, use_container_width=True)
+    st.pyplot(fig_arc, use_container_width=False)
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
