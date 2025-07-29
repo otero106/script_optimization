@@ -226,13 +226,32 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
     ].transform("sum")
     df["visual_density_score"] = (df["length_of_text"] / dlg_tot * 100).round(2)
 
+    # Clean up columns
+    df['Speaker'] = df['Speaker'].str.replace(r'\(.*?\)', '', regex=True).str.strip()
+    df['script content'] = df['script content'].str.replace('â', "'", regex=False)
+    df['script content'] = df['script content'].str.replace('Ã©', 'é', regex=False)
+    df['script content'] = df['script content'].str.replace('â', '"', regex=False)
+    df['script content'] = df['script content'].str.replace('â', '"', regex=False)
+    df['Speaker'] = df['Speaker'].str.replace('â', "'", regex=False)
+
     return df
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 4.  STREAMLIT UI
 # ──────────────────────────────────────────────────────────────────────────────
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barriecito&display=swap');
+            
+    html, body [class*="st-"], [class*="css-"] {
+        font-family: 'Barriecito', cursive;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=200)
 st.set_page_config(page_title="Script Analyzer", layout="wide")
-st.title("🎬 Script Analyzer Prototype")
+st.title("🎬 Toonstar Script Analyzer")
 st.markdown("Upload your annotated script **CSV** or raw **PDF** script file.")
 
 uploaded_file = st.file_uploader("📁 Upload a script file", type=["csv", "pdf"])
@@ -323,49 +342,19 @@ if uploaded_file:
         use_container_width=True,
     )
 
-    # ════════════════════════════════════════════════════════════════
-    #  EMOTION ARC  +  DIVERSITY TABLE  side-by-side
-    # ════════════════════════════════════════════════════════════════
-    chart_col, tbl_col = st.columns([1.7, 0.9])          # 65 % | 35 %
-
-    # ----- LEFT ▸ Emotion-arc line chart ----------------------------
-    with chart_col:
-        st.subheader("📈 Emotion Arc Across Scenes")
-
-        emo_avg = (
-            df.groupby("scene_id")["emotion_intensity"]
-              .mean()
-              .reset_index()
-        )
-
-        fig_arc, ax_arc = plt.subplots(figsize=(5, 3.2))   # compact
-        sns.lineplot(
-            data=emo_avg,
-            x="scene_id", y="emotion_intensity",
-            marker="o", ax=ax_arc
-        )
-        ax_arc.set_title("Emotion Arc Across Scenes", fontsize=10)
-        ax_arc.set_xlabel("Scene ID",                 fontsize=8)
-        ax_arc.set_ylabel("Avg Emotion Intensity",    fontsize=8)
-        ax_arc.tick_params(labelsize=8)
-
-        st.pyplot(fig_arc, use_container_width=False)
-
-    # ----- RIGHT ▸ Emotion-diversity table --------------------------
-    with tbl_col:
-        st.subheader("🎨 Emotion Diversity by Scene")
-
-        emo_div = (
-            df.groupby("scene_id")["emotion_label"]
-              .nunique()
-              .reset_index(name="diversity")
-              .astype(int)                # prettier ints
-        )
-
-        st.table(emo_div)                 # auto-sized, no blank rows
-
-    st.markdown("---")
-
+    # ══════════════════════════════════════════════════════════════════
+    #  EMOTION ARC
+    # ══════════════════════════════════════════════════════════════════
+    st.subheader("📈 Emotion Arc Across Scenes")
+    emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
+    fig_arc, ax_arc = plt.subplots()
+    sns.lineplot(
+        data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc
+    )
+    ax_arc.set_title("Emotion Arc Across Scenes")
+    ax_arc.set_xlabel("Scene ID")
+    ax_arc.set_ylabel("Avg Emotion Intensity")
+    st.pyplot(fig_arc)
 
     # ══════════════════════════════════════════════════════════════════
     #  DIALOGUE VOLUME
@@ -383,76 +372,65 @@ if uploaded_file:
     st.bar_chart(char_counts)
 
     # ══════════════════════════════════════════════════════════════════
-    #  CHARACTER MAP  +  RADAR SIDE-BY-SIDE
+    #  EMOTION DIVERSITY
     # ══════════════════════════════════════════════════════════════════
-    left_col, right_col = st.columns([0.9, 1.7])   # 60 % | 40 % width
+    st.subheader("🎨 Emotion Diversity by Scene")
+    emo_div = (
+        df.groupby("scene_id")["emotion_label"]
+        .nunique()
+        .reset_index(name="diversity")
+    )
+    st.dataframe(emo_div, use_container_width=True)
 
-    # ── LEFT  ▸ character-centric table ───────────────────────────────
-    with left_col:
-        st.subheader("🧍‍♂️ Character-Centric Emotion Map")
+    # ══════════════════════════════════════════════════════════════════
+    #  CHARACTER EMOTION MAP
+    # ══════════════════════════════════════════════════════════════════
+    st.subheader("🧍‍♂️ Character-Centric Emotion Map")
+    df["Speaker_clean"] = (
+        df["Speaker"]
+        .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
+        .str.strip()
+    )
+    speaker_counts = (
+        df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"].value_counts()
+    )
+    valid_spk = speaker_counts[speaker_counts > 1].index
+    emo_matrix = (
+        df[
+            df["Speaker_clean"].isin(valid_spk)
+            & (df["Type"].str.lower() == "dialogue")
+        ]
+        .groupby(["Speaker_clean", "emotion_label"])
+        .size()
+        .unstack(fill_value=0)
+    )
+    emo_matrix["Total"] = emo_matrix.sum(axis=1)
+    emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
+    st.dataframe(emo_matrix, use_container_width=True)
 
-        df["Speaker_clean"] = (
-            df["Speaker"]
-              .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
-              .str.strip()
-        )
+    # ══════════════════════════════════════════════════════════════════
+    #  RADAR CHART
+    # ══════════════════════════════════════════════════════════════════
+    st.subheader("🕸️ Emotion Distribution per Character (Radar)")
+    radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
+    cats = radar_df.columns.tolist()
+    angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
+    angles += angles[:1]
+    fig_radar, ax_radar = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    ax_radar.set_theta_offset(np.pi / 2)
+    ax_radar.set_theta_direction(-1)
+    ax_radar.set_rlabel_position(0)
+    ax_radar.set_xticks(angles[:-1])
+    ax_radar.set_xticklabels(cats)
+    ax_radar.set_ylim(0, radar_df.to_numpy().max() + 1)
+    for idx, row in radar_df.iterrows():
+        vals = row.tolist() + [row.tolist()[0]]
+        ax_radar.plot(angles, vals, linewidth=2, label=idx)
+        ax_radar.fill(angles, vals, alpha=0.1)
+    ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
+    ax_radar.set_title("Emotion Distribution per Character", y=1.1)
+    st.pyplot(fig_radar)
 
-        valid = (
-            df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
-              .value_counts()
-              .loc[lambda s: s > 1]
-              .index
-        )
-
-        emo_matrix = (
-            df[
-                df["Speaker_clean"].isin(valid) &
-                (df["Type"].str.lower() == "dialogue")
-            ]
-            .groupby(["Speaker_clean", "emotion_label"])
-            .size()
-            .unstack(fill_value=0)
-            .astype(int)
-        )
-
-        st.table(emo_matrix)        # just enough rows – no blank lines
-
-    # ── RIGHT ▸ radar chart ────────────────────────────────────────────
-    with right_col:
-        st.subheader("🕸️ Emotion Distribution per Character (Radar)")
-
-        radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
-        cats      = radar_df.columns.tolist()
-        angles    = np.linspace(0, 2*np.pi, len(cats), endpoint=False).tolist() + [0]
-
-        SMALL = 7           # one knob for all fonts
-
-        fig_radar, ax_radar = plt.subplots(figsize=(4.4, 4.0),
-                                       subplot_kw=dict(polar=True))
-
-        ax_radar.set_theta_offset(np.pi/2)
-        ax_radar.set_theta_direction(-1)
-        ax_radar.set_xticks(angles[:-1])
-        ax_radar.set_xticklabels(cats, fontsize=SMALL)
-        ax_radar.tick_params(labelsize=SMALL)
-        ax_radar.set_rlabel_position(0)
-        ax_radar.set_ylim(0, radar_df.to_numpy().max() + 1)
-
-        for name, row in radar_df.iterrows():
-            vals = row.tolist() + [row.tolist()[0]]
-            ax_radar.plot(angles, vals, linewidth=1.5, label=name)
-            ax_radar.fill(angles, vals, alpha=0.08)
-
-        ax_radar.legend(
-            loc="upper left",
-            bbox_to_anchor=(1.05, 1.0),
-            fontsize=SMALL,
-            frameon=False
-        )
-        st.pyplot(fig_radar, use_container_width=False)
-
-    st.markdown("---")
-  
     # ══════════════════════════════════════════════════════════════════
     #  TOP EMOTIONAL SCENES
     # ══════════════════════════════════════════════════════════════════
@@ -510,10 +488,10 @@ if uploaded_file:
             f"is explained by scene-level script features."
         )
     else:
-        st.info("🔮 Predicted retention by scene.")
+        st.info("🔮 Predicted retention by scene (no ground-truth column).")
 
     # ---- plot curve ---------------------------------------------------------
-    fig_curve, ax_curve = plt.subplots(figsize=(12, 6))
+    fig_curve, ax_curve = plt.subplots(figsize=(10, 4))
     ax_curve.plot(pred_scene.index, pred_scene.values,
                   label="Predicted", marker="x")
     if has_ret:
@@ -523,73 +501,48 @@ if uploaded_file:
     ax_curve.set_ylabel("Audience still watching (%)")
     ax_curve.set_title("Scene-level audience retention")
     ax_curve.legend()
-    st.pyplot(fig_curve,use_container_width=False)
+    st.pyplot(fig_curve)
 
-    # ══════════════════════════════════════════════════════════════════
-    #  FEATURE IMPORTANCE
-    # ══════════════════════════════════════════════════════════════════
+    # ------------------------------------------------------------------
+    # FEATURE IMPORTANCE
+    # ------------------------------------------------------------------
     st.markdown("#### 🎯 Biggest Story Elements Driving Retention")
     imp = retention_model.feature_importances_
     idx = imp.argsort()[::-1][:12]
-    fig_imp, ax_imp = plt.subplots(figsize=(6, 4))      # ⬅️ smaller
+    fig_imp, ax_imp = plt.subplots()
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
     ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
-    st.pyplot(fig_imp, use_container_width=False)
-    
-    # ───────────────────────────────────────────
-    #  Build SHAP values  (must come first)
-    # ───────────────────────────────────────────
-    explainer  = shap.TreeExplainer(retention_model)
-    shap_vals  = explainer.shap_values(work_df, check_additivity=False)
-        
-    # ════════════════════════════════════════════════════════════════
-    #  SHAP  – beeswarm  +  plain-English take-aways side-by-side
-    # ════════════════════════════════════════════════════════════════
-    st.subheader("🔎 What the results actually mean")
-    st.caption(
-        "Left: each dot shows how a script line nudges predicted retention "
-        "up or down.  Right: the bullet list translates the average effect "
-        "of each feature into percentage-point (pp) change."
+    st.pyplot(fig_imp)
+
+    # ------------------------------------------------------------------
+    # SHAP BEESWARM
+    # ------------------------------------------------------------------
+    st.markdown("#### 🐝 How those factors nudge viewers")
+    explainer = shap.TreeExplainer(retention_model)
+    shap_vals = explainer.shap_values(work_df, check_additivity=False)
+    fig_bee = plt.figure()
+    shap.summary_plot(
+        shap_vals, work_df, show=False, plot_type="dot", max_display=15
     )
+    st.pyplot(fig_bee)
 
-    left_shap, right_text = st.columns([1.4, 1])        # 60 % | 40 %
+    # ------------------------------------------------------------------
+    # PLAIN-ENGLISH TAKE-AWAYS
+    # ------------------------------------------------------------------
+    st.markdown("#### 📜 What this means for your script")
+    mean_shap = pd.Series(shap_vals.mean(axis=0), index=feats)
+    top_pos = mean_shap.nlargest(5)
+    top_neg = mean_shap.nsmallest(5)
 
-    # ── LEFT ▸ beeswarm plot ─────────────────────────────────────────
-    with left_shap:
-        st.caption("Beeswarm – individual impact")
+    bullets = ["##### 🔼 Elements that *raise* retention"]
+    for feat, v in top_pos.items():
+        bullets.append(f"- **{feat}** ↑ by **{v:+.2f} pp** on average")
 
-        fig_bee = plt.figure(figsize=(3.8, 3.2))
-        shap.summary_plot(
-            shap_vals,
-            work_df,
-            show=False,
-            plot_type="dot",
-            max_display=10
-        )
-        st.pyplot(fig_bee, use_container_width=False)
+    bullets.append("")
+    bullets.append("##### 🔽 Elements that *lower* retention")
+    for feat, v in top_neg.items():
+        bullets.append(f"- **{feat}** ↓ by **{v:.2f} pp** on average")
 
-    # ── RIGHT ▸ narrative bullets ───────────────────────────────────
-    with right_text:
-        st.caption("What this means for your script")
-
-        mean_shap = pd.Series(shap_vals.mean(axis=0), index=feats)
-
-        top_pos = mean_shap.nlargest(5)
-        top_neg = mean_shap.nsmallest(5)
-
-        bullet_lines = ["##### 🔼 Elements that *raise* retention"]
-        for feat, val in top_pos.items():
-            bullet_lines.append(f"- **{feat}** ↑ by **{val:+.2f} pp** on average")
-
-        bullet_lines.append("")  # blank line
-
-        bullet_lines.append("##### 🔽 Elements that *lower* retention")
-        for feat, val in top_neg.items():
-            bullet_lines.append(f"- **{feat}** ↓ by **{abs(val):.2f} pp** on average")
-
-        st.markdown("\n".join(bullet_lines))
-
-    st.markdown("---")
-
+    st.markdown("\n".join(bullets))
 
