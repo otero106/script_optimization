@@ -568,7 +568,7 @@ if uploaded_file:
 
         bullet_lines = ["##### 🔼 Elements that *raise* retention"]
         for feat, val in top_pos.items():
-        bullet_lines.append(f"- **{feat}** ↑ by **{val:+.2f} pp** on average")
+            bullet_lines.append(f"- **{feat}** ↑ by **{val:+.2f} pp** on average")
 
         bullet_lines.append("")  # blank line
 
