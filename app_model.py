@@ -239,19 +239,29 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
 # ──────────────────────────────────────────────────────────────────────────────
 # 4.  STREAMLIT UI
 # ──────────────────────────────────────────────────────────────────────────────
-st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=300)
 st.set_page_config(page_title="Script Analyzer", layout="wide")
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
+    
     h1 {
         font-family: 'Comic Relief', sans-serif;
         font-weight: 700;
         font-style: normal;
     }
+    .main .block-container {
+        background-color: #310140;
+        color: white; /* You may want to adjust text color for readability */
+    }
+    .stApp {
+        background-color: #310140;
+    }
+
     </style>
 """, unsafe_allow_html=True)
+
+st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=300)
 
 st.title("🎬 Script Analyzer")
 st.markdown("Upload your annotated script **CSV** or raw **PDF** script file.")
