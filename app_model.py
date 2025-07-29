@@ -536,7 +536,12 @@ if uploaded_file:
     ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
     st.pyplot(fig_imp, use_container_width=False)
-
+    
+    # ───────────────────────────────────────────
+    #  Build SHAP values  (must come first)
+    # ───────────────────────────────────────────
+    explainer  = shap.TreeExplainer(retention_model)
+    shap_vals  = explainer.shap_values(work_df, check_additivity=False)
         
     # ════════════════════════════════════════════════════════════════
     #  SHAP  – beeswarm  +  plain-English take-aways side-by-side
