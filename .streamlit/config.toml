@@ -1,6 +1,3 @@
 [theme]
-# The color of text on the main background
-textColor = "#FFFFFF"
-
 # The font for the entire app. Streamlit will import it from Google Fonts.
 font = "Comic Relief"
