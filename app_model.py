@@ -374,12 +374,12 @@ if uploaded_file:
     with table_col:
     st.subheader("🧍‍♂️ Character-Centric Emotion Map")
 
-    # build the same matrix as before
     df["Speaker_clean"] = (
         df["Speaker"]
           .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
           .str.strip()
     )
+
     valid = (
         df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
           .value_counts()
@@ -388,16 +388,17 @@ if uploaded_file:
     )
 
     emo_matrix = (
-        df[df["Speaker_clean"].isin(valid) &
-           (df["Type"].str.lower() == "dialogue")]
+        df[
+            df["Speaker_clean"].isin(valid) &
+            (df["Type"].str.lower() == "dialogue")
+        ]
         .groupby(["Speaker_clean", "emotion_label"])
         .size()
         .unstack(fill_value=0)
         .astype(int)
     )
 
-    # no blank lines ‒ let Streamlit size exactly to the rows
-    st.table(emo_matrix)
+    st.table(emo_matrix)        # just enough rows – no blank lines
 
     # ── RIGHT ▸ radar chart ────────────────────────────────────────────
     with right_col:
