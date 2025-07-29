@@ -9,3 +9,4 @@ streamlit
 torch
 shap
 xgboost
+base64
