@@ -510,7 +510,7 @@ if uploaded_file:
             f"is explained by scene-level script features."
         )
     else:
-        st.info("🔮 Predicted retention by scene (no ground-truth column).")
+        st.info("🔮 Predicted retention by scene.")
 
     # ---- plot curve ---------------------------------------------------------
     fig_curve, ax_curve = plt.subplots(figsize=(12, 6))
