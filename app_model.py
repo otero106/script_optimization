@@ -323,21 +323,49 @@ if uploaded_file:
         use_container_width=True,
     )
 
-    # ══════════════════════════════════════════════════════════════════
-    #  EMOTION ARC
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("📈 Emotion Arc Across Scenes")
-    emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(6, 3))     # ⬅️ smaller
-    sns.lineplot(
-        data=emo_avg, x="scene_id", y="emotion_intensity",
-        marker="o", ax=ax_arc
-    )
-    ax_arc.set_title("Emotion Arc Across Scenes")
-    ax_arc.set_xlabel("Scene ID")
-    ax_arc.set_ylabel("Avg Emotion Intensity")
-    st.pyplot(fig_arc, use_container_width=False)
+    # ════════════════════════════════════════════════════════════════
+    #  EMOTION ARC  +  DIVERSITY TABLE  side-by-side
+    # ════════════════════════════════════════════════════════════════
+    chart_col, tbl_col = st.columns([1.7, 0.9])          # 65 % | 35 %
+
+    # ----- LEFT ▸ Emotion-arc line chart ----------------------------
+    with chart_col:
+        st.subheader("📈 Emotion Arc Across Scenes")
+
+        emo_avg = (
+            df.groupby("scene_id")["emotion_intensity"]
+              .mean()
+              .reset_index()
+        )
+
+        fig_arc, ax_arc = plt.subplots(figsize=(5, 3.2))   # compact
+        sns.lineplot(
+            data=emo_avg,
+            x="scene_id", y="emotion_intensity",
+            marker="o", ax=ax_arc
+        )
+        ax_arc.set_title("Emotion Arc Across Scenes", fontsize=10)
+        ax_arc.set_xlabel("Scene ID",                 fontsize=8)
+        ax_arc.set_ylabel("Avg Emotion Intensity",    fontsize=8)
+        ax_arc.tick_params(labelsize=8)
+
+        st.pyplot(fig_arc, use_container_width=False)
+
+    # ----- RIGHT ▸ Emotion-diversity table --------------------------
+    with tbl_col:
+        st.subheader("🎨 Emotion Diversity by Scene")
+
+        emo_div = (
+            df.groupby("scene_id")["emotion_label"]
+              .nunique()
+              .reset_index(name="diversity")
+              .astype(int)                # prettier ints
+        )
+
+        st.table(emo_div)                 # auto-sized, no blank rows
+
     st.markdown("---")
+
 
     # ══════════════════════════════════════════════════════════════════
     #  DIALOGUE VOLUME
@@ -353,17 +381,6 @@ if uploaded_file:
         .head(10)
     )
     st.bar_chart(char_counts)
-
-    # ══════════════════════════════════════════════════════════════════
-    #  EMOTION DIVERSITY
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("🎨 Emotion Diversity by Scene")
-    emo_div = (
-        df.groupby("scene_id")["emotion_label"]
-        .nunique()
-        .reset_index(name="diversity")
-    )
-    st.dataframe(emo_div, use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════
     #  CHARACTER MAP  +  RADAR SIDE-BY-SIDE
