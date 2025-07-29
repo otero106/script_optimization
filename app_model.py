@@ -4,7 +4,6 @@
 import os
 import re
 import joblib
-import torch
 import fitz
 import shap
 import wordninja
@@ -33,8 +32,9 @@ def load_emotion_model():
 
 @st.cache_resource(show_spinner=False)
 def load_retention_model(path: str = "toonstar_xgb_final.pkl") -> XGBRegressor:
+    """Load the XGBoost model once per session."""
     if not os.path.exists(path):
-        st.error(f"Model file not found: {path}.")
+        st.error(f"Model file not found: {path}")
         st.stop()
     return joblib.load(path)
 
@@ -47,11 +47,9 @@ retention_model: XGBRegressor = load_retention_model()
 # ──────────────────────────────────────────────────────────────────────────────
 def is_probable_speaker(text: str) -> bool:
     text = text.strip()
-    if not text or not text.isupper():
-        return False
-    if re.search(r"[!?.,:;]$", text):
-        return False
-    if len(text.split()) > 5:
+    if (not text or not text.isupper()
+            or re.search(r"[!?.,:;]$", text)
+            or len(text.split()) > 5):
         return False
     return bool(re.match(r"^[A-Z0-9\s.\-]+(?:\([A-Z.'\s]+\))?$", text))
 
@@ -93,6 +91,7 @@ def get_sentiment(text: str):
 
 
 def get_emotion_info(text: str):
+    """Returns (label, score)."""
     if not text or not text.strip():
         return ("None", 0.0)
     res = emotion_classifier(text)
@@ -103,61 +102,60 @@ def get_emotion_info(text: str):
 # 3.  DATAFRAME BUILDERS
 # ──────────────────────────────────────────────────────────────────────────────
 def assign_scene_ids(df: pd.DataFrame) -> pd.DataFrame:
-    scene_id, prev, ids = 0, None, []
+    scene_id, prev_type, ids = 0, None, []
     for t in df["Type"]:
-        if t == "scene_heading" and prev != "scene_heading":
+        if t == "scene_heading" and prev_type != "scene_heading":
             scene_id += 1
         ids.append(scene_id)
-        prev = t
+        prev_type = t
     df["scene_id"] = ids
     return df
 
 
 def compute_dialogue_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    out = []
+    rows = []
     for _, g in df.groupby("script id"):
         lines = g.reset_index()
         dlg = lines[lines["Type"].str.lower() == "dialogue"]
         total_words = dlg["script content"].str.split().str.len().sum()
         cum, n = 0, 1
         for idx, row in lines.iterrows():
-            if (
-                row["Type"].lower() == "dialogue"
-                and pd.notna(row["script content"])
-            ):
-                w = len(str(row["script content"]).split())
-                cum += w
-                out.append(
-                    {
-                        "orig_index": row["index"],
-                        "line #": n,
-                        "cumulative length": cum,
-                        "total length of transcript": total_words,
-                    }
+            if row["Type"].lower() == "dialogue" and pd.notna(row["script content"]):
+                words = len(str(row["script content"]).split())
+                cum += words
+                rows.append(
+                    {"orig_index": row["index"], "line #": n,
+                     "cumulative length": cum,
+                     "total length of transcript": total_words}
                 )
                 n += 1
-    return df.join(pd.DataFrame(out).set_index("orig_index"))
+    return df.join(pd.DataFrame(rows).set_index("orig_index"))
 
 
 def process_pdf_into_dataframe(file) -> pd.DataFrame:
     doc = fitz.open(stream=file.read(), filetype="pdf")
-    lines = [l.strip() for p in doc for l in p.get_text().split("\n") if l.strip()]
+    lines = [
+        l.strip()
+        for p in doc for l in p.get_text().split("\n")
+        if l.strip()
+    ]
     doc.close()
 
     sid = extract_script_id(file.name)
     ep_title = file.name.split(".")[0]
-    rows, i = [], 0
-
+    rows = []
+    i = 0
     while i < len(lines):
-        line, rtype = lines[i], classify_row(lines[i])
+        line = lines[i]
+        rtype = classify_row(line)
 
+        # ---- CHARACTER block ------------------------------------------------
         if rtype == "character":
-            speaker, i = line, i + 1
+            speaker = line
+            i += 1
             dlg = []
             while i < len(lines) and classify_row(lines[i]) not in {
-                "character",
-                "scene_heading",
-                "transition",
+                "character", "scene_heading", "transition"
             }:
                 dlg.append(lines[i])
                 if ends_sentence(lines[i]):
@@ -165,17 +163,14 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
                     break
                 i += 1
             rows.append(
-                {
-                    "script id": sid,
-                    "episode title": ep_title,
-                    "Type": "dialogue",
-                    "Speaker": speaker,
-                    "script content": " ".join(dlg),
-                }
+                {"script id": sid, "episode title": ep_title, "Type": "dialogue",
+                 "Speaker": speaker, "script content": " ".join(dlg)}
             )
 
+        # ---- ACTION block ---------------------------------------------------
         elif rtype == "action":
-            block, i = [line], i + 1
+            block = [line]
+            i += 1
             while i < len(lines) and classify_row(lines[i]) == "action":
                 block.append(lines[i])
                 if ends_sentence(lines[i]):
@@ -183,48 +178,49 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
                     break
                 i += 1
             rows.append(
-                {
-                    "script id": sid,
-                    "episode title": ep_title,
-                    "Type": "action",
-                    "Speaker": None,
-                    "script content": " ".join(block),
-                }
+                {"script id": sid, "episode title": ep_title, "Type": "action",
+                 "Speaker": None, "script content": " ".join(block)}
             )
 
+        # ---- Other single-line types ----------------------------------------
         else:
             rows.append(
-                {
-                    "script id": sid,
-                    "episode title": ep_title,
-                    "Type": rtype,
-                    "Speaker": None,
-                    "script content": line,
-                }
+                {"script id": sid, "episode title": ep_title, "Type": rtype,
+                 "Speaker": None, "script content": line}
             )
             i += 1
 
     df = pd.DataFrame(rows)
+
+    # Basic NLP columns
     df["script content"] = df["script content"].apply(fix_spacing)
     df["length_of_text"] = df["script content"].str.count(r"\b\w+\b")
     df["sentiment"] = df["script content"].apply(get_sentiment)
+
+    # Flags
     df["is_it_a_character_line"] = (df["Type"].str.lower() == "dialogue").astype("Int64")
     df["is_it_contextual_info"] = df["Type"].str.lower().isin(
         ["action", "context", "scene_heading"]
     ).astype("Int64")
 
+    # Scene IDs + dialogue metrics
     df = assign_scene_ids(df)
     df = compute_dialogue_metrics(df)
     df["percentage_on_marker"] = (
         df["cumulative length"] / df["total length of transcript"] * 100
     ).round(2)
 
-    emo = df["script content"].apply(get_emotion_info).tolist()
-    df[["emotion_label", "emotion_intensity"]] = pd.DataFrame(emo, index=df.index)
+    # Emotion inference
+    emo_tuples = df["script content"].apply(get_emotion_info)
+    df[["emotion_label", "emotion_intensity"]] = pd.DataFrame(
+        emo_tuples.tolist(), index=df.index
+    )
 
-    top_char = df["Speaker"].dropna().value_counts().nlargest(1).index
-    df["is_lead_character"] = df["Speaker"].isin(top_char).astype("Int64")
+    # Lead-character flag
+    lead = df["Speaker"].dropna().value_counts().nlargest(1).index
+    df["is_lead_character"] = df["Speaker"].isin(lead).astype("Int64")
 
+    # Visual density per scene
     dlg_tot = df[df["Type"].str.lower() == "dialogue"].groupby("scene_id")[
         "length_of_text"
     ].transform("sum")
@@ -233,7 +229,7 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
     return df
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 4. STREAMLIT UI
+# 4.  STREAMLIT UI
 # ──────────────────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Script Analyzer", layout="wide")
 st.title("🎬 Script Analyzer Prototype")
@@ -243,7 +239,7 @@ uploaded_file = st.file_uploader("📁 Upload a script file", type=["csv", "pdf"
 
 # ----------------------------- Load file
 if uploaded_file and uploaded_file.name.endswith(".pdf"):
-    with st.spinner("Parsing PDF..."):
+    with st.spinner("Parsing PDF…"):
         df = process_pdf_into_dataframe(uploaded_file)
     st.success("✅ PDF parsed!")
 elif uploaded_file and uploaded_file.name.endswith(".csv"):
@@ -252,9 +248,9 @@ elif uploaded_file and uploaded_file.name.endswith(".csv"):
 
 # ----------------------------- Show UI only if file present
 if uploaded_file:
-    # ──────────────────────────────────────────────────────────
-    # PREVIEW & HEADER METRICS
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  HEADER & PREVIEW
+    # ══════════════════════════════════════════════════════════════════
     st.markdown("### 🧪 Emotion Classification Preview")
     preview_df = df[
         (df["Type"].str.lower() == "dialogue")
@@ -263,18 +259,19 @@ if uploaded_file:
     ][["script content", "emotion_label", "emotion_intensity"]].head(10)
     st.dataframe(preview_df, use_container_width=True)
 
-    script_id = df["script id"].iloc[0]
-    episode_title = df["episode title"].iloc[0]
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("🧾 Total Lines", len(df))
-    c2.metric("🎙️ Lead Character Lines", f"{df['is_lead_character'].mean()*100:.1f}%")
+    c2.metric(
+        "🎙️ Lead Character Lines",
+        f"{df['is_lead_character'].mean() * 100:.1f}%",
+    )
     c3.metric("💬 Emotional Dialogue", df["emotion_intensity"].notna().sum())
     c4.metric("🙂 Avg Sentiment", f"{df['sentiment'].mean():.2f}")
     st.markdown("---")
 
-    # ──────────────────────────────────────────────────────────
-    # FAKE ENGAGEMENT HEATMAP
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  HEATMAP
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("📊 Simulated Engagement Heatmap")
     df["fake_risk_score"] = (
         1 - (df["emotion_intensity"] * df["visual_density_score"] / 100)
@@ -291,9 +288,9 @@ if uploaded_file:
     st.pyplot(fig_heat)
     st.markdown("---")
 
-    # ──────────────────────────────────────────────────────────
-    # EMOTION DISTRIBUTION BY SCENE
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  EMOTION DISTRIBUTION BY SCENE
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🎭 Emotion Distribution by Scene")
     emo_scene = (
         df[df["is_it_a_character_line"] == 1]
@@ -305,11 +302,13 @@ if uploaded_file:
     st.bar_chart(emo_scene)
     st.markdown("---")
 
-    # ──────────────────────────────────────────────────────────
-    # EXPLORE SCRIPT LINES
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  EXPLORE LINES
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🔍 Explore Script Lines")
-    scene_filter = st.selectbox("Select a Scene", sorted(df["scene_id"].unique()))
+    scene_filter = st.selectbox(
+        "Select a Scene", sorted(df["scene_id"].unique())
+    )
     st.dataframe(
         df[df["scene_id"] == scene_filter][
             [
@@ -324,9 +323,9 @@ if uploaded_file:
         use_container_width=True,
     )
 
-    # ──────────────────────────────────────────────────────────
-    # EMOTION ARC ACROSS SCENES
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  EMOTION ARC
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
     fig_arc, ax_arc = plt.subplots()
@@ -338,11 +337,13 @@ if uploaded_file:
     ax_arc.set_ylabel("Avg Emotion Intensity")
     st.pyplot(fig_arc)
 
-    # ──────────────────────────────────────────────────────────
-    # DIALOGUE VOLUME BY CHARACTER
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  DIALOGUE VOLUME
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🎙️ Dialogue Volume by Character")
-    df["Speaker_clean"] = df["Speaker"].str.replace(r"\s*\(.*\)", "", regex=True).str.strip()
+    df["Speaker_clean"] = df["Speaker"].str.replace(
+        r"\s*\(.*\)", "", regex=True
+    ).str.strip()
     char_counts = (
         df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
         .value_counts()
@@ -351,18 +352,20 @@ if uploaded_file:
     )
     st.bar_chart(char_counts)
 
-    # ──────────────────────────────────────────────────────────
-    # EMOTION DIVERSITY
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  EMOTION DIVERSITY
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🎨 Emotion Diversity by Scene")
     emo_div = (
-        df.groupby("scene_id")["emotion_label"].nunique().reset_index(name="diversity")
+        df.groupby("scene_id")["emotion_label"]
+        .nunique()
+        .reset_index(name="diversity")
     )
     st.dataframe(emo_div, use_container_width=True)
 
-    # ──────────────────────────────────────────────────────────
-    # CHARACTER-CENTRIC EMOTION MAP
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  CHARACTER EMOTION MAP
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🧍‍♂️ Character-Centric Emotion Map")
     df["Speaker_clean"] = (
         df["Speaker"]
@@ -374,7 +377,10 @@ if uploaded_file:
     )
     valid_spk = speaker_counts[speaker_counts > 1].index
     emo_matrix = (
-        df[df["Speaker_clean"].isin(valid_spk) & (df["Type"].str.lower() == "dialogue")]
+        df[
+            df["Speaker_clean"].isin(valid_spk)
+            & (df["Type"].str.lower() == "dialogue")
+        ]
         .groupby(["Speaker_clean", "emotion_label"])
         .size()
         .unstack(fill_value=0)
@@ -383,9 +389,9 @@ if uploaded_file:
     emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
     st.dataframe(emo_matrix, use_container_width=True)
 
-    # ──────────────────────────────────────────────────────────
-    # RADAR CHART
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  RADAR CHART
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🕸️ Emotion Distribution per Character (Radar)")
     radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
     cats = radar_df.columns.tolist()
@@ -402,13 +408,13 @@ if uploaded_file:
         vals = row.tolist() + [row.tolist()[0]]
         ax_radar.plot(angles, vals, linewidth=2, label=idx)
         ax_radar.fill(angles, vals, alpha=0.1)
-    ax_radar.legend(loc="upper right", bbox_to_anchor=(1.2, 1.05), fontsize=9)
-    ax_radar.set_title("Emotion Distribution per Character", y=1.08)
+    ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
+    ax_radar.set_title("Emotion Distribution per Character", y=1.1)
     st.pyplot(fig_radar)
 
-    # ──────────────────────────────────────────────────────────
-    # TOP EMOTIONAL SCENES
-    # ──────────────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════
+    #  TOP EMOTIONAL SCENES
+    # ══════════════════════════════════════════════════════════════════
     st.subheader("🔥 Top Emotional Scenes")
     top_scenes = (
         df.groupby("scene_id")[["emotion_intensity", "visual_density_score"]]
@@ -419,43 +425,41 @@ if uploaded_file:
     st.dataframe(top_scenes, use_container_width=True)
 
     # ──────────────────────────────────────────────────────────────────
-    # STEP 3 – ML PRE-PROCESS & PREDICT
+    # STEP 3 – ML PRE-PROCESS & PREDICT  (absolute retention target)
     # ──────────────────────────────────────────────────────────────────
     st.markdown("## 🔧 Predictive Retention Analysis")
-    has_ret = "normalized_retention" in df.columns
-    work_df = df.copy()
 
-    # 1) drop >50 % missing
+    has_ret = "Absolute audience retention (%)" in df.columns
+
+    # ---- clean + one-hot ----------------------------------------------------
+    work_df = df.copy()
     miss = work_df.isna().mean()
     work_df = work_df.drop(columns=miss[miss > 0.50].index)
 
-    # 2) impute
-    num = work_df.select_dtypes(include="number").columns
-    cat = work_df.select_dtypes(include="object").columns
-    work_df[num] = work_df[num].fillna(work_df[num].mean())
-    for c in cat:
+    num_cols = work_df.select_dtypes(include="number").columns
+    cat_cols = work_df.select_dtypes(include="object").columns
+    work_df[num_cols] = work_df[num_cols].fillna(work_df[num_cols].mean())
+    for c in cat_cols:
         work_df[c] = work_df[c].fillna(work_df[c].mode(dropna=True).iloc[0])
 
-    # 3) one-hot
-    work_df = pd.get_dummies(work_df, columns=cat, drop_first=True)
+    work_df = pd.get_dummies(work_df, columns=cat_cols, drop_first=True)
 
-    # 4) align
+    # ---- align to training features ----------------------------------------
     feats = retention_model.feature_names_in_
     for c in feats:
         if c not in work_df:
             work_df[c] = 0
     work_df = work_df[feats]
 
-    # ---- prediction
+    # ---- predict ------------------------------------------------------------
     with st.spinner("Crunching the numbers…"):
-        y_pred_norm = retention_model.predict(work_df)
+        y_pred_abs = retention_model.predict(work_df)
 
-    # ---- back-convert to absolute audience share
-    df["pred_abs"] = y_pred_norm * (df["length_of_text"] + 1)
+    df["pred_abs"] = y_pred_abs
     if has_ret:
-        df["true_abs"] = df["normalized_retention"] * (df["length_of_text"] + 1)
+        df["true_abs"] = df["Absolute audience retention (%)"]
 
-    # ---- aggregate by scene
+    # ---- aggregate by scene -------------------------------------------------
     pred_scene = df.groupby("scene_id")["pred_abs"].mean().sort_index()
     if has_ret:
         true_scene = df.groupby("scene_id")["true_abs"].mean().sort_index()
@@ -465,16 +469,15 @@ if uploaded_file:
             f"is explained by scene-level script features."
         )
     else:
-        st.info("🔮 Predicted *absolute* retention by scene (no ground-truth column).")
+        st.info("🔮 Predicted retention by scene (no ground-truth column).")
 
-    # ---- plot absolute retention curve
+    # ---- plot curve ---------------------------------------------------------
     fig_curve, ax_curve = plt.subplots(figsize=(10, 4))
     ax_curve.plot(pred_scene.index, pred_scene.values,
-                  label="Predicted (abs.)", marker="x")
+                  label="Predicted", marker="x")
     if has_ret:
         ax_curve.plot(true_scene.index, true_scene.values,
-                      label="Actual (abs.)", marker="o", linestyle="--",
-                      alpha=0.75)
+                      label="Actual", marker="o", linestyle="--", alpha=0.75)
     ax_curve.set_xlabel("Scene ID")
     ax_curve.set_ylabel("Audience still watching (%)")
     ax_curve.set_title("Scene-level audience retention")
@@ -494,19 +497,19 @@ if uploaded_file:
     st.pyplot(fig_imp)
 
     # ------------------------------------------------------------------
-    # SHAP beeswarm
+    # SHAP BEESWARM
     # ------------------------------------------------------------------
     st.markdown("#### 🐝 How those factors nudge viewers")
     explainer = shap.TreeExplainer(retention_model)
     shap_vals = explainer.shap_values(work_df, check_additivity=False)
     fig_bee = plt.figure()
-    shap.summary_plot(shap_vals, work_df, show=False,
-                      plot_type="dot", max_display=15)
+    shap.summary_plot(
+        shap_vals, work_df, show=False, plot_type="dot", max_display=15
+    )
     st.pyplot(fig_bee)
-    st.caption("Dots to → right boost retention; left hurt it.")
 
     # ------------------------------------------------------------------
-    # PLAIN-ENGLISH take-aways
+    # PLAIN-ENGLISH TAKE-AWAYS
     # ------------------------------------------------------------------
     st.markdown("#### 📜 What this means for your script")
     mean_shap = pd.Series(shap_vals.mean(axis=0), index=feats)
@@ -523,3 +526,4 @@ if uploaded_file:
         bullets.append(f"- **{feat}** ↓ by **{v:.2f} pp** on average")
 
     st.markdown("\n".join(bullets))
+
