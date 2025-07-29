@@ -368,37 +368,36 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     #  CHARACTER MAP  +  RADAR SIDE-BY-SIDE
     # ══════════════════════════════════════════════════════════════════
-    left_col, right_col = st.columns([1.6, 1])   # 60 % | 40 % width
+    left_col, right_col = st.columns([0.9, 1.7])   # 60 % | 40 % width
 
     # ── LEFT  ▸ character-centric table ───────────────────────────────
-    with left_col:
-        st.subheader("🧍‍♂️ Character-Centric Emotion Map")
+    with table_col:
+    st.subheader("🧍‍♂️ Character-Centric Emotion Map")
 
-        df["Speaker_clean"] = (
-            df["Speaker"]
-              .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
-              .str.strip()
-        )
+    # build the same matrix as before
+    df["Speaker_clean"] = (
+        df["Speaker"]
+          .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
+          .str.strip()
+    )
+    valid = (
+        df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
+          .value_counts()
+          .loc[lambda s: s > 1]
+          .index
+    )
 
-        speaker_counts = (
-            df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"].value_counts()
-        )
-        valid_spk = speaker_counts[speaker_counts > 1].index
+    emo_matrix = (
+        df[df["Speaker_clean"].isin(valid) &
+           (df["Type"].str.lower() == "dialogue")]
+        .groupby(["Speaker_clean", "emotion_label"])
+        .size()
+        .unstack(fill_value=0)
+        .astype(int)
+    )
 
-        emo_matrix = (
-            df[
-                df["Speaker_clean"].isin(valid_spk)
-                & (df["Type"].str.lower() == "dialogue")
-            ]
-            .groupby(["Speaker_clean", "emotion_label"])
-            .size()
-            .unstack(fill_value=0)
-        )
-
-        emo_matrix["Total"] = emo_matrix.sum(axis=1)
-        emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
-
-        st.dataframe(emo_matrix, use_container_width=True, height=280)
+    # no blank lines ‒ let Streamlit size exactly to the rows
+    st.table(emo_matrix)
 
     # ── RIGHT ▸ radar chart ────────────────────────────────────────────
     with right_col:
@@ -410,7 +409,7 @@ if uploaded_file:
 
         SMALL = 7           # one knob for all fonts
 
-        fig_radar, ax_radar = plt.subplots(figsize=(3.2, 3.0),
+        fig_radar, ax_radar = plt.subplots(figsize=(4.4, 4.0),
                                        subplot_kw=dict(polar=True))
 
         ax_radar.set_theta_offset(np.pi/2)
