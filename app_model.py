@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import base64
 
 from textblob import TextBlob
 from transformers import pipeline
@@ -45,6 +46,20 @@ retention_model: XGBRegressor = load_retention_model()
 # ──────────────────────────────────────────────────────────────────────────────
 # 2.  HELPER FUNCTIONS
 # ──────────────────────────────────────────────────────────────────────────────
+def add_bg_from_url():
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background-image: url("https://wallpapers.com/images/high/fade-4k-background-xra9dqc9u7bqbgqx.webp");
+             background-attachment: fixed;
+             background-size: cover
+         }}
+         </style>
+         """,
+         unsafe_allow_html=True
+    )
+
 def is_probable_speaker(text: str) -> bool:
     text = text.strip()
     if (not text or not text.isupper()
@@ -241,24 +256,7 @@ def process_pdf_into_dataframe(file) -> pd.DataFrame:
 # ──────────────────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Script Analyzer", layout="wide")
 
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
-
-    [data-testid="stTitle"] {
-        font-family: 'Comic Relief', sans-serif;
-        font-weight: 700;
-    }
-    .main .block-container {
-        background-color: #260530;
-        color: white; /* You may want to adjust text color for readability */
-    }
-    .stApp {
-        background-color: #260530;
-    }
-
-    </style>
-""", unsafe_allow_html=True)
+add_bg_from_url() # Add background image
 
 st.image("https://cdn.prod.website-files.com/64b83e9317dc3622290fd4fa/65a9178afbb21bd44cbf074f_toonstar-logo-removebg-preview.png", width=300)
 
