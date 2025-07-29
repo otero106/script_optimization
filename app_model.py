@@ -328,14 +328,16 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots()
+    fig_arc, ax_arc = plt.subplots(figsize=(6, 3))     # ⬅️ smaller
     sns.lineplot(
-        data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc
+        data=emo_avg, x="scene_id", y="emotion_intensity",
+        marker="o", ax=ax_arc
     )
     ax_arc.set_title("Emotion Arc Across Scenes")
     ax_arc.set_xlabel("Scene ID")
     ax_arc.set_ylabel("Avg Emotion Intensity")
-    st.pyplot(fig_arc)
+    st.pyplot(fig_arc, use_container_width=True)
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  DIALOGUE VOLUME
@@ -397,7 +399,9 @@ if uploaded_file:
     cats = radar_df.columns.tolist()
     angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
     angles += angles[:1]
-    fig_radar, ax_radar = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    fig_radar, ax_radar = plt.subplots(
+        figsize=(4, 4), subplot_kw=dict(polar=True)   # ⬅️ smaller
+    )
     ax_radar.set_theta_offset(np.pi / 2)
     ax_radar.set_theta_direction(-1)
     ax_radar.set_rlabel_position(0)
@@ -408,9 +412,12 @@ if uploaded_file:
         vals = row.tolist() + [row.tolist()[0]]
         ax_radar.plot(angles, vals, linewidth=2, label=idx)
         ax_radar.fill(angles, vals, alpha=0.1)
-    ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
+    ax_radar.legend(
+        loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9
+    )
     ax_radar.set_title("Emotion Distribution per Character", y=1.1)
     st.pyplot(fig_radar)
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  TOP EMOTIONAL SCENES
@@ -484,46 +491,63 @@ if uploaded_file:
     ax_curve.legend()
     st.pyplot(fig_curve)
 
-    # ------------------------------------------------------------------
-    # FEATURE IMPORTANCE
-    # ------------------------------------------------------------------
+    # ══════════════════════════════════════════════════════════════════
+    #  FEATURE IMPORTANCE
+    # ══════════════════════════════════════════════════════════════════
     st.markdown("#### 🎯 Biggest Story Elements Driving Retention")
     imp = retention_model.feature_importances_
     idx = imp.argsort()[::-1][:12]
-    fig_imp, ax_imp = plt.subplots()
+    fig_imp, ax_imp = plt.subplots(figsize=(6, 4))      # ⬅️ smaller
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
     ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
-    st.pyplot(fig_imp)
+    st.pyplot(fig_imp, use_container_width=True)
 
-    # ------------------------------------------------------------------
-    # SHAP BEESWARM
-    # ------------------------------------------------------------------
-    st.markdown("#### 🐝 How those factors nudge viewers")
+    # ══════════════════════════════════════════════════════════════════
+    #  SHAP PLOTS SIDE-BY-SIDE
+    # ══════════════════════════════════════════════════════════════════
+    st.markdown("### 🐝 How script factors nudge retention")
+
     explainer = shap.TreeExplainer(retention_model)
     shap_vals = explainer.shap_values(work_df, check_additivity=False)
-    fig_bee = plt.figure()
-    shap.summary_plot(
-        shap_vals, work_df, show=False, plot_type="dot", max_display=15
-    )
-    st.pyplot(fig_bee)
 
-    # ------------------------------------------------------------------
-    # PLAIN-ENGLISH TAKE-AWAYS
-    # ------------------------------------------------------------------
+    colA, colB = st.columns(2)
+
+    with colA:
+        st.caption("Beeswarm – individual impact")
+        fig_bee = plt.figure(figsize=(6, 4))
+        shap.summary_plot(
+            shap_vals, work_df, show=False,
+            plot_type="dot", max_display=15
+        )
+        st.pyplot(fig_bee, use_container_width=True)
+
+    with colB:
+        st.caption("Mean |SHAP| – overall importance")
+        fig_bar = plt.figure(figsize=(6, 4))
+        shap.summary_plot(
+            shap_vals, work_df, show=False,
+            plot_type="bar", max_display=15
+        )
+        st.pyplot(fig_bar, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════
+    #  PLAIN-ENGLISH TAKE-AWAYS
+    # ══════════════════════════════════════════════════════════════════
     st.markdown("#### 📜 What this means for your script")
     mean_shap = pd.Series(shap_vals.mean(axis=0), index=feats)
     top_pos = mean_shap.nlargest(5)
     top_neg = mean_shap.nsmallest(5)
 
-    bullets = ["##### 🔼 Elements that *raise* retention"]
+    bullet_lines = ["##### 🔼 Elements that *raise* retention"]
     for feat, v in top_pos.items():
-        bullets.append(f"- **{feat}** ↑ by **{v:+.2f} pp** on average")
+        bullet_lines.append(f"- **{feat}** ↑ by **{v:+.2f} pp** on average")
 
-    bullets.append("")
-    bullets.append("##### 🔽 Elements that *lower* retention")
+    bullet_lines.append("")
+    bullet_lines.append("##### 🔽 Elements that *lower* retention")
     for feat, v in top_neg.items():
-        bullets.append(f"- **{feat}** ↓ by **{v:.2f} pp** on average")
+        bullet_lines.append(f"- **{feat}** ↓ by **{v:.2f} pp** on average")
 
-    st.markdown("\n".join(bullets))
+    st.markdown("\n".join(bullet_lines))
+
 
