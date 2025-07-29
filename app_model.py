@@ -381,14 +381,13 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots()
+    fig_arc, ax_arc = plt.subplots(figsize=(6, 2))
     sns.lineplot(
         data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc
     )
     ax_arc.set_title("Emotion Arc Across Scenes")
     ax_arc.set_xlabel("Scene ID")
     ax_arc.set_ylabel("Avg Emotion Intensity")
-    fig_arc.set_size_inches(10, 4)
     st.pyplot(fig_arc)
 
     # ══════════════════════════════════════════════════════════════════
@@ -451,7 +450,7 @@ if uploaded_file:
     cats = radar_df.columns.tolist()
     angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
     angles += angles[:1]
-    fig_radar, ax_radar = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    fig_radar, ax_radar = plt.subplots(figsize=(3, 3), subplot_kw=dict(polar=True))
     ax_radar.set_theta_offset(np.pi / 2)
     ax_radar.set_theta_direction(-1)
     ax_radar.set_rlabel_position(0)
@@ -464,7 +463,6 @@ if uploaded_file:
         ax_radar.fill(angles, vals, alpha=0.1)
     ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
     ax_radar.set_title("Emotion Distribution per Character", y=1.1)
-    fig_radar.set_size_inches(10, 4)
     st.pyplot(fig_radar)
 
     # ══════════════════════════════════════════════════════════════════
