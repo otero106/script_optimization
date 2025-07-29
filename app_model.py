@@ -372,33 +372,33 @@ if uploaded_file:
 
     # ── LEFT  ▸ character-centric table ───────────────────────────────
     with table_col:
-    st.subheader("🧍‍♂️ Character-Centric Emotion Map")
+        st.subheader("🧍‍♂️ Character-Centric Emotion Map")
 
-    df["Speaker_clean"] = (
-        df["Speaker"]
-          .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
-          .str.strip()
-    )
+        df["Speaker_clean"] = (
+            df["Speaker"]
+              .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
+              .str.strip()
+        )
 
-    valid = (
-        df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
-          .value_counts()
-          .loc[lambda s: s > 1]
-          .index
-    )
+        valid = (
+            df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
+              .value_counts()
+              .loc[lambda s: s > 1]
+              .index
+        )
 
-    emo_matrix = (
-        df[
-            df["Speaker_clean"].isin(valid) &
-            (df["Type"].str.lower() == "dialogue")
-        ]
-        .groupby(["Speaker_clean", "emotion_label"])
-        .size()
-        .unstack(fill_value=0)
-        .astype(int)
-    )
+        emo_matrix = (
+            df[
+                df["Speaker_clean"].isin(valid) &
+                (df["Type"].str.lower() == "dialogue")
+            ]
+            .groupby(["Speaker_clean", "emotion_label"])
+            .size()
+            .unstack(fill_value=0)
+            .astype(int)
+        )
 
-    st.table(emo_matrix)        # just enough rows – no blank lines
+        st.table(emo_matrix)        # just enough rows – no blank lines
 
     # ── RIGHT ▸ radar chart ────────────────────────────────────────────
     with right_col:
