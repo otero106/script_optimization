@@ -559,13 +559,13 @@ if uploaded_file:
     with left_shap:
         st.caption("Beeswarm – individual impact")
 
-        fig_bee = plt.figure(figsize=(4.2, 3.8))
+        fig_bee = plt.figure(figsize=(3.8, 3.2))
         shap.summary_plot(
             shap_vals,
             work_df,
             show=False,
             plot_type="dot",
-            max_display=15
+            max_display=10
         )
         st.pyplot(fig_bee, use_container_width=False)
 
