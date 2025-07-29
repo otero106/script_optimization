@@ -1,7 +1,4 @@
 [theme]
-# The main background color
-backgroundColor = "#310140"
-
 # The color of text on the main background
 textColor = "#FFFFFF"
 
