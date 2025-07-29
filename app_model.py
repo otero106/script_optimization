@@ -513,7 +513,7 @@ if uploaded_file:
         st.info("🔮 Predicted retention by scene (no ground-truth column).")
 
     # ---- plot curve ---------------------------------------------------------
-    fig_curve, ax_curve = plt.subplots(figsize=(10, 4))
+    fig_curve, ax_curve = plt.subplots(figsize=(12, 6))
     ax_curve.plot(pred_scene.index, pred_scene.values,
                   label="Predicted", marker="x")
     if has_ret:
@@ -523,7 +523,7 @@ if uploaded_file:
     ax_curve.set_ylabel("Audience still watching (%)")
     ax_curve.set_title("Scene-level audience retention")
     ax_curve.legend()
-    st.pyplot(fig_curve)
+    st.pyplot(fig_curve,use_container_width=False)
 
     # ══════════════════════════════════════════════════════════════════
     #  FEATURE IMPORTANCE
@@ -537,51 +537,47 @@ if uploaded_file:
     ax_imp.set_xlabel("Importance")
     st.pyplot(fig_imp, use_container_width=False)
 
-    # ══════════════════════════════════════════════════════════════════
-    #  SHAP PLOTS SIDE-BY-SIDE
-    # ══════════════════════════════════════════════════════════════════
-    st.markdown("### 🐝 How script factors nudge retention")
+        
+    # ════════════════════════════════════════════════════════════════
+    #  SHAP  – beeswarm  +  plain-English take-aways side-by-side
+    # ════════════════════════════════════════════════════════════════
+    left_shap, right_text = st.columns([1.4, 1])        # 60 % | 40 %
 
-    explainer = shap.TreeExplainer(retention_model)
-    shap_vals = explainer.shap_values(work_df, check_additivity=False)
-
-    colA, colB = st.columns(2)
-
-    with colA:
+    # ── LEFT ▸ beeswarm plot ─────────────────────────────────────────
+    with left_shap:
         st.caption("Beeswarm – individual impact")
-        fig_bee = plt.figure(figsize=(6, 4))
+
+        fig_bee = plt.figure(figsize=(4.2, 3.8))
         shap.summary_plot(
-            shap_vals, work_df, show=False,
-            plot_type="dot", max_display=15
+            shap_vals,
+            work_df,
+            show=False,
+            plot_type="dot",
+            max_display=15
         )
-        st.pyplot(fig_bee, use_container_width=True)
+        st.pyplot(fig_bee, use_container_width=False)
 
-    with colB:
-        st.caption("Mean |SHAP| – overall importance")
-        fig_bar = plt.figure(figsize=(6, 4))
-        shap.summary_plot(
-            shap_vals, work_df, show=False,
-            plot_type="bar", max_display=15
-        )
-        st.pyplot(fig_bar, use_container_width=True)
+    # ── RIGHT ▸ narrative bullets ───────────────────────────────────
+    with right_text:
+        st.caption("What this means for your script")
 
-    # ══════════════════════════════════════════════════════════════════
-    #  PLAIN-ENGLISH TAKE-AWAYS
-    # ══════════════════════════════════════════════════════════════════
-    st.markdown("#### 📜 What this means for your script")
-    mean_shap = pd.Series(shap_vals.mean(axis=0), index=feats)
-    top_pos = mean_shap.nlargest(5)
-    top_neg = mean_shap.nsmallest(5)
+        mean_shap = pd.Series(shap_vals.mean(axis=0), index=feats)
 
-    bullet_lines = ["##### 🔼 Elements that *raise* retention"]
-    for feat, v in top_pos.items():
-        bullet_lines.append(f"- **{feat}** ↑ by **{v:+.2f} pp** on average")
+        top_pos = mean_shap.nlargest(5)
+        top_neg = mean_shap.nsmallest(5)
 
-    bullet_lines.append("")
-    bullet_lines.append("##### 🔽 Elements that *lower* retention")
-    for feat, v in top_neg.items():
-        bullet_lines.append(f"- **{feat}** ↓ by **{v:.2f} pp** on average")
+        bullet_lines = ["##### 🔼 Elements that *raise* retention"]
+        for feat, val in top_pos.items():
+        bullet_lines.append(f"- **{feat}** ↑ by **{val:+.2f} pp** on average")
 
-    st.markdown("\n".join(bullet_lines))
+        bullet_lines.append("")  # blank line
+
+        bullet_lines.append("##### 🔽 Elements that *lower* retention")
+        for feat, val in top_neg.items():
+            bullet_lines.append(f"- **{feat}** ↓ by **{abs(val):.2f} pp** on average")
+
+        st.markdown("\n".join(bullet_lines))
+
+    st.markdown("---")
 
 
