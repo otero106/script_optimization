@@ -371,7 +371,7 @@ if uploaded_file:
     left_col, right_col = st.columns([0.9, 1.7])   # 60 % | 40 % width
 
     # ── LEFT  ▸ character-centric table ───────────────────────────────
-    with table_col:
+    with left_col:
         st.subheader("🧍‍♂️ Character-Centric Emotion Map")
 
         df["Speaker_clean"] = (
