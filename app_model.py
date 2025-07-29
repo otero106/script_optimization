@@ -328,7 +328,7 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(6, 3))     # ⬅️ smaller
+    fig_arc, ax_arc = plt.subplots(figsize=(5, 2))     # ⬅️ smaller
     sns.lineplot(
         data=emo_avg, x="scene_id", y="emotion_intensity",
         marker="o", ax=ax_arc
@@ -395,28 +395,56 @@ if uploaded_file:
     #  RADAR CHART
     # ══════════════════════════════════════════════════════════════════
     st.subheader("🕸️ Emotion Distribution per Character (Radar)")
+
     radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
-    cats = radar_df.columns.tolist()
-    angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
-    angles += angles[:1]
+    cats      = radar_df.columns.tolist()
+
+    # ── polar frame ---------------------------------------------------
+    angles = np.linspace(0, 2*np.pi, len(cats), endpoint=False).tolist() + [0]
+
+    # ▶ 1) figure size  (width, height)  — shrink here
     fig_radar, ax_radar = plt.subplots(
-        figsize=(4, 4), subplot_kw=dict(polar=True)   # ⬅️ smaller
+        figsize=(4, 3.8),                 # ← change numbers to taste
+        subplot_kw=dict(polar=True)
     )
-    ax_radar.set_theta_offset(np.pi / 2)
+
+    # basic polar orientation
+    ax_radar.set_theta_offset(np.pi/2)
     ax_radar.set_theta_direction(-1)
-    ax_radar.set_rlabel_position(0)
+
+    # axis / grid font size
+    SMALL_FNT = 7                        # ▶ 2) global font-size knob
+
     ax_radar.set_xticks(angles[:-1])
-    ax_radar.set_xticklabels(cats)
-    ax_radar.set_ylim(0, radar_df.to_numpy().max() + 1)
-    for idx, row in radar_df.iterrows():
+    ax_radar.set_xticklabels(cats, fontsize=SMALL_FNT)
+    ax_radar.set_rlabel_position(0)
+    ax_radar.tick_params(labelsize=SMALL_FNT)
+
+    # radius limit
+    r_max = radar_df.to_numpy().max() + 1
+    ax_radar.set_ylim(0, r_max)
+
+    # plot each character
+    for name, row in radar_df.iterrows():
         vals = row.tolist() + [row.tolist()[0]]
-        ax_radar.plot(angles, vals, linewidth=2, label=idx)
-        ax_radar.fill(angles, vals, alpha=0.1)
+        ax_radar.plot(angles, vals, linewidth=1.5, label=name)
+        ax_radar.fill(angles, vals, alpha=0.08)
+
+    # compact legend inside the chart
     ax_radar.legend(
-        loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.02),      # nudges legend just outside
+        fontsize=SMALL_FNT,
+        frameon=False
     )
-    ax_radar.set_title("Emotion Distribution per Character", y=1.1)
-    st.pyplot(fig_radar)
+
+    ax_radar.set_title(
+        "Emotion Distribution per Character",
+        y=1.08,
+        fontsize=SMALL_FNT + 1
+    )
+
+    st.pyplot(fig_radar, use_container_width=True)
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
