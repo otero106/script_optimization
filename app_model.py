@@ -328,7 +328,7 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(6, 3))     # ⬅️ smaller
+    fig_arc, ax_arc = plt.subplots(figsize=(4, 2))     # ⬅️ smaller
     sns.lineplot(
         data=emo_avg, x="scene_id", y="emotion_intensity",
         marker="o", ax=ax_arc
@@ -400,7 +400,7 @@ if uploaded_file:
     angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
     angles += angles[:1]
     fig_radar, ax_radar = plt.subplots(
-        figsize=(4, 4), subplot_kw=dict(polar=True)   # ⬅️ smaller
+        figsize=(2, 2), subplot_kw=dict(polar=True)   # ⬅️ smaller
     )
     ax_radar.set_theta_offset(np.pi / 2)
     ax_radar.set_theta_direction(-1)
@@ -413,7 +413,7 @@ if uploaded_file:
         ax_radar.plot(angles, vals, linewidth=2, label=idx)
         ax_radar.fill(angles, vals, alpha=0.1)
     ax_radar.legend(
-        loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9
+        loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=6
     )
     ax_radar.set_title("Emotion Distribution per Character", y=1.1)
     st.pyplot(fig_radar)
@@ -506,25 +506,34 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     #  SHAP PLOTS SIDE-BY-SIDE
     # ══════════════════════════════════════════════════════════════════
+    # ══════════ SHAP PLOTS SIDE-BY-SIDE  (with divider) ═══════════════════
     st.markdown("### 🐝 How script factors nudge retention")
 
-    explainer = shap.TreeExplainer(retention_model)
-    shap_vals = explainer.shap_values(work_df, check_additivity=False)
+    explainer  = shap.TreeExplainer(retention_model)
+    shap_vals  = explainer.shap_values(work_df, check_additivity=False)
 
-    colA, colB = st.columns(2)
+    # 3-column layout:  left plot | thin divider | right plot
+    colL, colDiv, colR = st.columns([1, 0.05, 1])
 
-    with colA:
+    with colL:
         st.caption("Beeswarm – individual impact")
-        fig_bee = plt.figure(figsize=(6, 4))
+        fig_bee = plt.figure(figsize=(5, 3))
         shap.summary_plot(
             shap_vals, work_df, show=False,
             plot_type="dot", max_display=15
         )
-        st.pyplot(fig_bee, use_container_width=True)
+    st.pyplot(fig_bee, use_container_width=True)
 
-    with colB:
+    with colDiv:
+        # pure HTML/CSS vertical line
+        colDiv.markdown(
+            "<div style='height:100%; border-left:1px solid #888;'></div>",
+            unsafe_allow_html=True,
+        )
+
+    with colR:
         st.caption("Mean |SHAP| – overall importance")
-        fig_bar = plt.figure(figsize=(6, 4))
+        fig_bar = plt.figure(figsize=(5, 3))
         shap.summary_plot(
             shap_vals, work_df, show=False,
             plot_type="bar", max_display=15
