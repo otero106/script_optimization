@@ -546,21 +546,11 @@ if uploaded_file:
     # ════════════════════════════════════════════════════════════════
     #  SHAP  – beeswarm  +  plain-English take-aways side-by-side
     # ════════════════════════════════════════════════════════════════
-    # ───── context for the SHAP visuals ─────────────────────────────
-    st.markdown(
-        """
-    <small>
-    **How to read this section**  
-    * Each dot in the **beeswarm** (left) is one line of your script.  
-      &nbsp;&nbsp;• Dots to the **right** push predicted retention **up** (positive SHAP value).  
-      &nbsp;&nbsp;• Dots to the **left** push it **down**.  
-      &nbsp;&nbsp;• Colour shows whether the original feature value was high (pink) or low (blue).  
-
-    * The bullets (right) translate the average effect into **percentage-point (pp) change**.<br>
-      *“+0.12 pp” means that feature raises the retention prediction by 0.12 percentage points on average.*
-    </small>
-    """,
-        unsafe_allow_html=True,
+    st.subheader("🔎 What the results actually mean")
+    st.caption(
+        "Left: each dot shows how a script line nudges predicted retention "
+        "up or down.  Right: the bullet list translates the average effect "
+        "of each feature into percentage-point (pp) change."
     )
 
     left_shap, right_text = st.columns([1.4, 1])        # 60 % | 40 %
