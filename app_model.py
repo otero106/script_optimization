@@ -432,9 +432,6 @@ if uploaded_file:
             fontsize=SMALL,
             frameon=False
         )
-        ax_radar.set_title("Emotion Distribution per Character",
-                           y=1.08, fontsize=SMALL + 1)
-
         st.pyplot(fig_radar, use_container_width=False)
 
     st.markdown("---")
