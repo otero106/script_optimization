@@ -388,6 +388,7 @@ if uploaded_file:
     ax_arc.set_title("Emotion Arc Across Scenes")
     ax_arc.set_xlabel("Scene ID")
     ax_arc.set_ylabel("Avg Emotion Intensity")
+    fig_arc.set_size_inches(10, 4)
     st.pyplot(fig_arc)
 
     # ══════════════════════════════════════════════════════════════════
@@ -463,6 +464,7 @@ if uploaded_file:
         ax_radar.fill(angles, vals, alpha=0.1)
     ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
     ax_radar.set_title("Emotion Distribution per Character", y=1.1)
+    fig_radar.set_size_inches(10, 4)
     st.pyplot(fig_radar)
 
     # ══════════════════════════════════════════════════════════════════
