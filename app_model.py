@@ -381,7 +381,7 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(6, 2))
+    fig_arc, ax_arc = plt.subplots(figsize=(7, 3))
     sns.lineplot(
         data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc
     )
@@ -531,17 +531,19 @@ if uploaded_file:
         st.info("🔮 Predicted retention by scene (no ground-truth column).")
 
     # ---- plot curve ---------------------------------------------------------
-    fig_curve, ax_curve = plt.subplots(figsize=(10, 4))
+    fig_curve, ax_curve = plt.subplots(figsize=(7, 4))
     ax_curve.plot(pred_scene.index, pred_scene.values,
                   label="Predicted", marker="x")
     if has_ret:
         ax_curve.plot(true_scene.index, true_scene.values,
                       label="Actual", marker="o", linestyle="--", alpha=0.75)
     ax_curve.set_xlabel("Scene ID")
-    ax_curve.set_ylabel("Audience still watching (%)")
-    ax_curve.set_title("Scene-level audience retention")
+    ax_curve.set_ylabel("Audience Still Watching (%)")
+    ax_curve.set_title("Scene-level Audience Retention")
     ax_curve.legend()
-    st.pyplot(fig_curve)
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.pyplot(fig_curve)
 
     # ------------------------------------------------------------------
     # FEATURE IMPORTANCE
@@ -549,11 +551,14 @@ if uploaded_file:
     st.markdown("#### 🎯 Biggest Story Elements Driving Retention")
     imp = retention_model.feature_importances_
     idx = imp.argsort()[::-1][:12]
-    fig_imp, ax_imp = plt.subplots()
+    fig_imp, ax_imp = plt.subplots(fig_size=(6, 4))
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
     ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
-    st.pyplot(fig_imp)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.pyplot(fig_imp)
+
 
     # ------------------------------------------------------------------
     # SHAP BEESWARM
@@ -561,11 +566,13 @@ if uploaded_file:
     st.markdown("#### 🐝 How those factors nudge viewers")
     explainer = shap.TreeExplainer(retention_model)
     shap_vals = explainer.shap_values(work_df, check_additivity=False)
-    fig_bee = plt.figure()
+    fig_bee = plt.figure(figsize=(6, 4))
     shap.summary_plot(
         shap_vals, work_df, show=False, plot_type="dot", max_display=15
     )
-    st.pyplot(fig_bee)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.pyplot(fig_bee)
 
     # ------------------------------------------------------------------
     # PLAIN-ENGLISH TAKE-AWAYS
