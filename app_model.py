@@ -553,28 +553,21 @@ if uploaded_file:
     idx = imp.argsort()[::-1][:12]
     fig_imp, ax_imp = plt.subplots()
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
-    ax_imp.set_title("Top Factors that Move Retention")
+    ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.pyplot(fig_imp)
-
+    st.pyplot(fig_imp)
 
     # ------------------------------------------------------------------
     # SHAP BEESWARM
     # ------------------------------------------------------------------
-    st.markdown("#### 🐝 How Those Factors Nudge Viewers")
+    st.markdown("#### 🐝 How those factors nudge viewers")
     explainer = shap.TreeExplainer(retention_model)
     shap_vals = explainer.shap_values(work_df, check_additivity=False)
-
     fig_bee = plt.figure()
     shap.summary_plot(
         shap_vals, work_df, show=False, plot_type="dot", max_display=15
     )
-    # Use columns to constrain and center the chart
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.pyplot(fig_bee)
+    st.pyplot(fig_bee)
 
     # ------------------------------------------------------------------
     # PLAIN-ENGLISH TAKE-AWAYS
