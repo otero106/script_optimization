@@ -381,7 +381,7 @@ if uploaded_file:
     # ══════════════════════════════════════════════════════════════════
     st.subheader("📈 Emotion Arc Across Scenes")
     emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(7, 3))
+    fig_arc, ax_arc = plt.subplots(figsize=(7, 4))
     sns.lineplot(
         data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc
     )
@@ -553,21 +553,25 @@ if uploaded_file:
     idx = imp.argsort()[::-1][:12]
     fig_imp, ax_imp = plt.subplots()
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
-    ax_imp.set_title("Top factors that move retention")
+    ax_imp.set_title("Top Factors That Move Retention")
     ax_imp.set_xlabel("Importance")
-    st.pyplot(fig_imp)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.pyplot(fig_imp)
 
     # ------------------------------------------------------------------
     # SHAP BEESWARM
     # ------------------------------------------------------------------
-    st.markdown("#### 🐝 How those factors nudge viewers")
+    st.markdown("#### 🐝 How Those Factors Nudge Viewers")
     explainer = shap.TreeExplainer(retention_model)
     shap_vals = explainer.shap_values(work_df, check_additivity=False)
     fig_bee = plt.figure()
     shap.summary_plot(
         shap_vals, work_df, show=False, plot_type="dot", max_display=15
     )
-    st.pyplot(fig_bee)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.pyplot(fig_bee)
 
     # ------------------------------------------------------------------
     # PLAIN-ENGLISH TAKE-AWAYS
