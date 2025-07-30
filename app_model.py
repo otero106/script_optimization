@@ -551,7 +551,7 @@ if uploaded_file:
     st.markdown("#### 🎯 Biggest Story Elements Driving Retention")
     imp = retention_model.feature_importances_
     idx = imp.argsort()[::-1][:12]
-    fig_imp, ax_imp = plt.subplots(fig_size=(6, 4))
+    fig_imp, ax_imp = plt.subplots(fig_size=(6, 4), subplot_kw=dict(polar=True))
     ax_imp.barh([feats[i] for i in idx][::-1], imp[idx][::-1])
     ax_imp.set_title("Top factors that move retention")
     ax_imp.set_xlabel("Importance")
