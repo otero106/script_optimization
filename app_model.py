@@ -388,7 +388,11 @@ if uploaded_file:
     ax_arc.set_title("Emotion Arc Across Scenes")
     ax_arc.set_xlabel("Scene ID")
     ax_arc.set_ylabel("Avg Emotion Intensity")
-    st.pyplot(fig_arc)
+    # Use columns to control the width
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.pyplot(fig_arc)
+
 
     # ══════════════════════════════════════════════════════════════════
     #  DIALOGUE VOLUME
@@ -450,7 +454,7 @@ if uploaded_file:
     cats = radar_df.columns.tolist()
     angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
     angles += angles[:1]
-    fig_radar, ax_radar = plt.subplots(figsize=(3, 3), subplot_kw=dict(polar=True))
+    fig_radar, ax_radar = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True))
     ax_radar.set_theta_offset(np.pi / 2)
     ax_radar.set_theta_direction(-1)
     ax_radar.set_rlabel_position(0)
@@ -463,7 +467,9 @@ if uploaded_file:
         ax_radar.fill(angles, vals, alpha=0.1)
     ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
     ax_radar.set_title("Emotion Distribution per Character", y=1.1)
-    st.pyplot(fig_radar)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.pyplot(fig_radar)
 
     # ══════════════════════════════════════════════════════════════════
     #  TOP EMOTIONAL SCENES
