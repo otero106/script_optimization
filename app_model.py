@@ -1,6 +1,6 @@
 # app.py
 import streamlit as st
-from Streamlit.emotion_analysis_page import emotion_page
+from emotion_analysis_page import emotion_page
 from retention_analysis_page import retention_page
 from upload_page import upload_page
 
