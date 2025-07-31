@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import re
+from utils import add_bg_from_url
 
 def emotion_page():
     add_bg_from_url()
