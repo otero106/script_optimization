@@ -101,6 +101,7 @@ def retention_page():
         shap.summary_plot(
             shap_vals, work_df, show=False, plot_type="dot", max_display=15
         )
+        st.pyplot(fig_bee)
     st.markdown("---")
 
     # ------------------------------------------------------------------
