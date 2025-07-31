@@ -90,6 +90,7 @@ def emotion_page():
         ],
         use_container_width=True,
     )
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  EMOTION ARC
@@ -107,7 +108,7 @@ def emotion_page():
     col1, col2 = st.columns([3, 1])
     with col1:
         st.pyplot(fig_arc)
-
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  DIALOGUE VOLUME
@@ -123,6 +124,7 @@ def emotion_page():
         .head(10)
     )
     st.bar_chart(char_counts)
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  EMOTION DIVERSITY
@@ -134,6 +136,7 @@ def emotion_page():
         .reset_index(name="diversity")
     )
     st.dataframe(emo_div, use_container_width=True)
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  CHARACTER EMOTION MAP
@@ -160,6 +163,7 @@ def emotion_page():
     emo_matrix["Total"] = emo_matrix.sum(axis=1)
     emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
     st.dataframe(emo_matrix, use_container_width=True)
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  RADAR CHART
@@ -185,6 +189,7 @@ def emotion_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.pyplot(fig_radar)
+    st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════
     #  TOP EMOTIONAL SCENES
