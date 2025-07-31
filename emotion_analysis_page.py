@@ -3,8 +3,10 @@ import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 def emotion_page():
+    add_bg_from_url()
     st.title("🎭 Emotion Analysis")
 
     if 'df' not in st.session_state:

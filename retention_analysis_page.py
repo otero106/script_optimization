@@ -7,6 +7,8 @@ from sklearn.metrics import r2_score
 from utils import load_retention_model
 
 def retention_page():
+    add_bg_from_url()
+    
     st.title("📈 Retention Analysis")
 
     if 'df' not in st.session_state:
