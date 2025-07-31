@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import shap
 from sklearn.metrics import r2_score
-from utils import load_retention_model
+from utils import load_retention_model, add_bg_from_url
 
 def retention_page():
     add_bg_from_url()
