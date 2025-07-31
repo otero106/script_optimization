@@ -3,7 +3,6 @@ import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-import re
 from utils import add_bg_from_url
 
 def emotion_page():
@@ -16,9 +15,7 @@ def emotion_page():
 
     df = st.session_state.df
 
-    # ══════════════════════════════════════════════════════════════════
-    #  HEADER & PREVIEW
-    # ══════════════════════════════════════════════════════════════════
+    # HEADER & PREVIEW
     st.markdown("### 🧪 Emotion Classification Preview")
     preview_df = df[
         (df["Type"].str.lower() == "dialogue")
@@ -37,9 +34,7 @@ def emotion_page():
     c4.metric("🙂 Avg Sentiment", f"{df['sentiment'].mean():.2f}")
     st.markdown("---")
 
-    # ══════════════════════════════════════════════════════════════════
-    #  HEATMAP
-    # ══════════════════════════════════════════════════════════════════
+    # HEATMAP
     st.subheader("📊 Simulated Engagement Heatmap")
     df["fake_risk_score"] = (
         1 - (df["emotion_intensity"] * df["visual_density_score"] / 100)
@@ -56,9 +51,7 @@ def emotion_page():
     st.pyplot(fig_heat)
     st.markdown("---")
 
-    # ══════════════════════════════════════════════════════════════════
-    #  EMOTION DISTRIBUTION BY SCENE
-    # ══════════════════════════════════════════════════════════════════
+    # EMOTION DISTRIBUTION BY SCENE
     st.subheader("🎭 Emotion Distribution by Scene")
     emo_scene = (
         df[df["is_it_a_character_line"] == 1]
@@ -70,9 +63,75 @@ def emotion_page():
     st.bar_chart(emo_scene)
     st.markdown("---")
 
-    # ══════════════════════════════════════════════════════════════════
-    #  EXPLORE LINES
-    # ══════════════════════════════════════════════════════════════════
+    # EMOTION ARC AND DIALOGUE VOLUME (Side-by-Side)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("📈 Emotion Arc Across Scenes")
+        emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
+        fig_arc, ax_arc = plt.subplots(figsize=(7, 4))
+        sns.lineplot(data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc)
+        ax_arc.set_title("Emotion Arc Across Scenes")
+        ax_arc.set_xlabel("Scene ID")
+        ax_arc.set_ylabel("Avg Emotion Intensity")
+        st.pyplot(fig_arc)
+    with col2:
+        st.subheader("🎙️ Dialogue Volume by Character")
+        df["Speaker_clean"] = df["Speaker"].str.replace(r"\s*\(.*\)", "", regex=True).str.strip()
+        char_counts = (
+            df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
+            .value_counts()
+            .loc[lambda s: s > 1]
+            .head(10)
+            )
+        st.bar_chart(char_counts)
+    st.markdown("---")
+
+    # CHARACTER EMOTION MAP AND RADAR CHART (Side-by-Side)
+    col3, col4 = st.columns(2)
+    with col3:
+        st.subheader("🧍‍♂️ Character-Centric Emotion Map")
+        df["Speaker_clean"] = (
+            df["Speaker"]
+            .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
+            .str.strip()
+        )
+        speaker_counts = (df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"].value_counts())
+        valid_spk = speaker_counts[speaker_counts > 1].index
+        emo_matrix = (
+            df[
+                df["Speaker_clean"].isin(valid_spk)
+                & (df["Type"].str.lower() == "dialogue")
+            ]
+            .groupby(["Speaker_clean", "emotion_label"])
+            .size()
+            .unstack(fill_value=0)
+        )
+        emo_matrix["Total"] = emo_matrix.sum(axis=1)
+        emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
+        st.dataframe(emo_matrix, use_container_width=True)
+    with col4:
+        st.subheader("🕸️ Emotion Distribution (Radar)")
+        radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
+        cats = radar_df.columns.tolist()
+        angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
+        angles += angles[:1]
+        fig_radar, ax_radar = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True))
+        ax_radar.set_theta_offset(np.pi / 2)
+        ax_radar.set_theta_direction(-1)
+        ax_radar.set_rlabel_position(0)
+        ax_radar.set_xticks(angles[:-1])
+        ax_radar.set_xticklabels(cats)
+        ax_radar.set_ylim(0, radar_df.to_numpy().max() + 1)
+        for idx, row in radar_df.iterrows():
+            vals = row.tolist() + [row.tolist()[0]]
+            ax_radar.plot(angles, vals, linewidth=2, label=idx)
+            ax_radar.fill(angles, vals, alpha=0.1)
+        ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
+        ax_radar.set_title("Emotion Distribution per Character", y=1.1)
+        st.pyplot(fig_radar)
+    st.markdown("---")
+    
+    # EXPLORE LINES
     st.subheader("🔍 Explore Script Lines")
     scene_filter = st.selectbox(
         "Select a Scene", sorted(df["scene_id"].unique())
@@ -92,108 +151,7 @@ def emotion_page():
     )
     st.markdown("---")
 
-    # ══════════════════════════════════════════════════════════════════
-    #  EMOTION ARC
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("📈 Emotion Arc Across Scenes")
-    emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-    fig_arc, ax_arc = plt.subplots(figsize=(7, 4))
-    sns.lineplot(
-        data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc
-    )
-    ax_arc.set_title("Emotion Arc Across Scenes")
-    ax_arc.set_xlabel("Scene ID")
-    ax_arc.set_ylabel("Avg Emotion Intensity")
-    # Use columns to control the width
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.pyplot(fig_arc)
-    st.markdown("---")
-
-    # ══════════════════════════════════════════════════════════════════
-    #  DIALOGUE VOLUME
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("🎙️ Dialogue Volume by Character")
-    df["Speaker_clean"] = df["Speaker"].str.replace(
-        r"\s*\(.*\)", "", regex=True
-    ).str.strip()
-    char_counts = (
-        df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
-        .value_counts()
-        .loc[lambda s: s > 1]
-        .head(10)
-    )
-    st.bar_chart(char_counts)
-    st.markdown("---")
-
-    # ══════════════════════════════════════════════════════════════════
-    #  EMOTION DIVERSITY
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("🎨 Emotion Diversity by Scene")
-    emo_div = (
-        df.groupby("scene_id")["emotion_label"]
-        .nunique()
-        .reset_index(name="diversity")
-    )
-    st.dataframe(emo_div, use_container_width=True)
-    st.markdown("---")
-
-    # ══════════════════════════════════════════════════════════════════
-    #  CHARACTER EMOTION MAP
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("🧍‍♂️ Character-Centric Emotion Map")
-    df["Speaker_clean"] = (
-        df["Speaker"]
-        .str.replace(r"\s*\((CONT'D|O\.S\.|V\.O\.)\)", "", regex=True, flags=re.I)
-        .str.strip()
-    )
-    speaker_counts = (
-        df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"].value_counts()
-    )
-    valid_spk = speaker_counts[speaker_counts > 1].index
-    emo_matrix = (
-        df[
-            df["Speaker_clean"].isin(valid_spk)
-            & (df["Type"].str.lower() == "dialogue")
-        ]
-        .groupby(["Speaker_clean", "emotion_label"])
-        .size()
-        .unstack(fill_value=0)
-    )
-    emo_matrix["Total"] = emo_matrix.sum(axis=1)
-    emo_matrix = emo_matrix.sort_values("Total", ascending=False).drop(columns="Total")
-    st.dataframe(emo_matrix, use_container_width=True)
-    st.markdown("---")
-
-    # ══════════════════════════════════════════════════════════════════
-    #  RADAR CHART
-    # ══════════════════════════════════════════════════════════════════
-    st.subheader("🕸️ Emotion Distribution per Character (Radar)")
-    radar_df = emo_matrix.drop(columns=["None"], errors="ignore")
-    cats = radar_df.columns.tolist()
-    angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
-    angles += angles[:1]
-    fig_radar, ax_radar = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True))
-    ax_radar.set_theta_offset(np.pi / 2)
-    ax_radar.set_theta_direction(-1)
-    ax_radar.set_rlabel_position(0)
-    ax_radar.set_xticks(angles[:-1])
-    ax_radar.set_xticklabels(cats)
-    ax_radar.set_ylim(0, radar_df.to_numpy().max() + 1)
-    for idx, row in radar_df.iterrows():
-        vals = row.tolist() + [row.tolist()[0]]
-        ax_radar.plot(angles, vals, linewidth=2, label=idx)
-        ax_radar.fill(angles, vals, alpha=0.1)
-    ax_radar.legend(loc="upper right", bbox_to_anchor=(1.25, 1.05), fontsize=9)
-    ax_radar.set_title("Emotion Distribution per Character", y=1.1)
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.pyplot(fig_radar)
-    st.markdown("---")
-
-    # ══════════════════════════════════════════════════════════════════
-    #  TOP EMOTIONAL SCENES
-    # ══════════════════════════════════════════════════════════════════
+    # TOP EMOTIONAL SCENES
     st.subheader("🔥 Top Emotional Scenes")
     top_scenes = (
         df.groupby("scene_id")[["emotion_intensity", "visual_density_score"]]
