@@ -11,7 +11,7 @@ st.set_page_config(page_title="Script Analyzer", layout="wide")
 pages = [
     st.Page(upload_page, title="Home", icon="📁"),
     st.Page(emotion_page, title="Emotion Analysis", icon="🎭"),
-    st.Page(character_analysis, title="Character Analysis", icon ="👥"),
+    st.Page(character_page, title="Character Analysis", icon ="👥"),
     st.Page(retention_page, title="Retention Analysis", icon="📈"),
 ]
 
