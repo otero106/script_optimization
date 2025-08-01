@@ -18,7 +18,7 @@ def character_page():
     df = st.session_state.df
 
     # LAYOUT: LEFT COLUMN (Emotion Table + Dialogue Volume) | RIGHT COLUMN (Radar)
-    col3, col4 = st.columns([2, 1])
+    col3, col4 = st.columns([1, 1])
 
     # LEFT SIDE (Emotion Table + Dialogue Volume)
     with col3:
