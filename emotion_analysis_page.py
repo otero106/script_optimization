@@ -72,7 +72,7 @@ def emotion_page():
     ax_arc.set_title("Emotion Arc Across Scenes")
     ax_arc.set_xlabel("Scene ID")
     ax_arc.set_ylabel("Avg Emotion Intensity")
-    st.pyplot(fig_arc)
+    st.pyplot(fig_arc, use_container_width=False)
 
     st.markdown("---")
 
