@@ -61,7 +61,7 @@ def character_page():
         angles = np.linspace(0, 2 * np.pi, len(cats), endpoint=False).tolist()
         angles += angles[:1]
 
-        fig_radar, ax_radar = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+        fig_radar, ax_radar = plt.subplots(figsize=(8, 7), subplot_kw=dict(polar=True))
         ax_radar.set_theta_offset(np.pi / 2)
         ax_radar.set_theta_direction(-1)
         ax_radar.set_rlabel_position(0)
