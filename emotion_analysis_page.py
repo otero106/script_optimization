@@ -64,27 +64,16 @@ def emotion_page():
     st.bar_chart(emo_scene)
     st.markdown("---")
 
-    # EMOTION ARC AND DIALOGUE VOLUME (Side-by-Side)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("📈 Emotion Arc Across Scenes")
-        emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
-        fig_arc, ax_arc = plt.subplots(figsize=(7, 4))
-        sns.lineplot(data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc)
-        ax_arc.set_title("Emotion Arc Across Scenes")
-        ax_arc.set_xlabel("Scene ID")
-        ax_arc.set_ylabel("Avg Emotion Intensity")
-        st.pyplot(fig_arc)
-    with col2:
-        st.subheader("🎙️ Dialogue Volume by Character")
-        df["Speaker_clean"] = df["Speaker"].str.replace(r"\s*\(.*\)", "", regex=True).str.strip()
-        char_counts = (
-            df[df["Type"].str.lower() == "dialogue"]["Speaker_clean"]
-            .value_counts()
-            .loc[lambda s: s > 1]
-            .head(10)
-            )
-        st.bar_chart(char_counts)
+    # EMOTION ARC 
+    st.subheader("📈 Emotion Arc Across Scenes")
+    emo_avg = df.groupby("scene_id")["emotion_intensity"].mean().reset_index()
+    fig_arc, ax_arc = plt.subplots(figsize=(7, 4))
+    sns.lineplot(data=emo_avg, x="scene_id", y="emotion_intensity", marker="o", ax=ax_arc)
+    ax_arc.set_title("Emotion Arc Across Scenes")
+    ax_arc.set_xlabel("Scene ID")
+    ax_arc.set_ylabel("Avg Emotion Intensity")
+    st.pyplot(fig_arc)
+
     st.markdown("---")
 
     # CHARACTER EMOTION MAP AND RADAR CHART (Side-by-Side)
