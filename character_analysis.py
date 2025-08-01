@@ -81,7 +81,7 @@ def character_page() -> None:
 
         # Bigger native canvas so the figure looks crisp when stretched
         fig_radar, ax_radar = plt.subplots(
-            figsize=(7, 5),               # square figure
+            figsize=(7, 7),               # square figure
             subplot_kw=dict(polar=True)
         )
 
