@@ -48,16 +48,30 @@ retention_model: XGBRegressor = load_retention_model()
 # ──────────────────────────────────────────────────────────────────────────────
 def add_bg_from_url():
     st.markdown(
-         f"""
-         <style>
-         .stApp {{
-             background-image: url("https://wallpapers.com/images/high/fade-4k-background-xra9dqc9u7bqbgqx.webp");
-             background-attachment: fixed;
-             background-size: cover
-         }}
-         </style>
-         """,
-         unsafe_allow_html=True
+        f"""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
+
+        .stApp {{
+            background-image: url("https://wallpapers.com/images/high/fade-4k-background-xra9dqc9u7bqbgqx.webp");
+            background-attachment: fixed;
+            background-size: cover
+            color: white;
+        }}
+
+        /* Ensures all headers are white */
+        h1, h2, h3, h4, h5, h6 {{
+            color: white;
+        }}
+
+        /* Custom font for the main title */
+        h1 {{
+            font-family: 'Comic Relief', sans-serif;
+            font-weight: 700;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
     )
 
 def is_probable_speaker(text: str) -> bool:
