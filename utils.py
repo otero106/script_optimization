@@ -50,12 +50,10 @@ def add_bg_from_url():
     st.markdown(
         f"""
         <style>
-
         .stApp {{
             background-image: url("https://wallpapers.com/images/high/fade-4k-background-xra9dqc9u7bqbgqx.webp");
             background-attachment: fixed;
             background-size: cover
-            color: white;
         }}
         </style>
         """,
